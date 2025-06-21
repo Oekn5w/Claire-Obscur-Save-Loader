@@ -86,6 +86,7 @@ class MainWindow(QMainWindow):
             ("Delete Profile", self.DeleteProfile),
             ("Duplicate Profile", self.DuplicateProfile),
             ("Rename Profile", self.RenameProfile),
+            ("Open Fileexplorer", self.OpenExplorerWindow),
         ]:
             btn = QPushButton(label, self)
             btn.clicked.connect(handler)
@@ -104,9 +105,35 @@ class MainWindow(QMainWindow):
         self.ImportButton.clicked.connect(self.ImportSave)
         self.LoadButton.clicked.connect(self.LoadSave)
 
-        h_layout = QHBoxLayout()
-        h_layout.addWidget(self.ImportButton)
-        h_layout.addWidget(self.LoadButton)
+        h_layout_buttons = QHBoxLayout()
+        h_layout_buttons.addWidget(self.ImportButton)
+        h_layout_buttons.addWidget(self.LoadButton)
+
+        steamIDRetVal = functionForSave.GetDictOfSteamIDs()
+        self.steamIDs : dict = steamIDRetVal["ids"]
+
+        self.IDSelector = QComboBox(self)
+        self.IDSelector.setEditable(True)
+        self.IDSelector.lineEdit().setReadOnly(True)
+        self.IDSelector.lineEdit().setPlaceholderText("Select")
+        self.IDSelector.setInsertPolicy(QComboBox.NoInsert)
+        self.IDSelector.addItems(self.steamIDs.keys())
+        if steamIDRetVal["latest"] == "":
+            self.IDSelector.setCurrentIndex(0)
+        else:
+            self.IDSelector.setCurrentText(steamIDRetVal["latest"])
+        self.IDSelector.activated.connect(self.sidSelect)
+
+        self.lblSteam = QLabel("", self)
+        self.lblSteam.setFont(QFont("Helvetica", 10))
+        self.lblSteam.setStyleSheet(f"color: #eeeeee;")
+        self.lblSteam.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.sidSelect()
+
+        h_layout_steam = QHBoxLayout()
+        h_layout_steam.addWidget(self.IDSelector)
+        h_layout_steam.addWidget(self.lblSteam)
+        
 
         # Popup message label
         self.popupmsg = QLabel("", self)
@@ -118,8 +145,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.qcombo, 0, 1)
         layout.addLayout(VBoxProfile, 1, 1, alignment=Qt.AlignTop)
         layout.addWidget(self.listwidget, 1, 0)
-        layout.addLayout(h_layout, 2, 0)
-        layout.addWidget(self.popupmsg, 3, 0)
+        layout.addLayout(h_layout_buttons, 2, 0)
+        layout.addLayout(h_layout_steam, 3, 0)
+        layout.addWidget(self.popupmsg, 4, 0)
         
 
     # ---------- Utility Methods ----------
@@ -170,7 +198,10 @@ class MainWindow(QMainWindow):
             self.showMessage("Select a profile first", "red")
             return
         name = self.currentProfile()
-        if self.confirmAction("Warning!", f"You will delete {name} Profile", "Are you sure?"):
+        noOfSaves = self.listwidget.count()
+        if not self.confirmAction("Warning!", f"You will delete {name} Profile", "Are you sure?"):
+            return
+        if noOfSaves > 0 and self.confirmAction("Warning!", f"You will delete {name} Profile containing {noOfSaves} saves", "Are you really sure?"):
             functionForSave.DeleteProfile(name)
             self.qcombo.clear()
             self.qcombo.addItems(functionForSave.GetListOfProfile())
@@ -214,12 +245,27 @@ class MainWindow(QMainWindow):
             else:
                 self.showMessage("Profile already exists", "red")
 
+    # ---------- Misc ---------------------
+
+    def OpenExplorerWindow(self):
+        os.startfile(functionForSave.folderLocation)
+
+    # ---------- Misc ---------------------
+
+    def sidSelect(self):
+        curID = self.IDSelector.currentText()
+        if curID in self.steamIDs:
+            self.lblSteam.setText(self.steamIDs[curID])
+        else:
+            self.lblSteam.setText("")
+
     # ---------- Save Management ----------
 
     def LoadSave(self):
         item = self.listwidget.currentItem()
         if item:
-            if functionForSave.LoadSave(item.text(), self.currentProfile()):
+            steamID = self.IDSelector.currentText()
+            if functionForSave.LoadSave(steamID, item.text(), self.currentProfile()):
                 self.listwidget.setCurrentItem(item)
                 self.showMessage(f"{item.text()} has been successfully loaded")
             else:
@@ -237,7 +283,8 @@ class MainWindow(QMainWindow):
                 if "/" in name or "\\" in name:
                     self.showMessage(f"you can't use / or \\ in the name", "red")
                 else:
-                    if functionForSave.ImportSave(name, self.currentProfile()):
+                    steamID = self.IDSelector.currentText()
+                    if functionForSave.ImportSave(steamID, name, self.currentProfile()):
                         self.listwidget.clear()
                         self.listwidget.addItems(functionForSave.GetListOfSave(self.currentProfile()))
                         self.showMessage(f"{name} has been successfully imported")
@@ -294,7 +341,8 @@ class MainWindow(QMainWindow):
         item = self.listwidget.currentItem()
         if item:
             if self.confirmAction("Warning!", f"You will replace {item.text()}", "Are you sure?"):
-                if functionForSave.ImportSave(item.text(), self.currentProfile()):
+                steamID = self.IDSelector.currentText()
+                if functionForSave.ImportSave(steamID, item.text(), self.currentProfile()):
                     self.showMessage(f"{item.text()} has been updated")
                 else:
                     self.showMessage("Select a profile first", "red")

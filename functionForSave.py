@@ -1,10 +1,12 @@
 import os
 import shutil
 import stat
+import json
 
 folderLocation = os.path.join(os.getenv('LOCALAPPDATA'), "Sandfall", "Saved", "SaveGames")
 AllSavePath = os.path.join(folderLocation, "Save")
 os.makedirs(AllSavePath, exist_ok=True)
+ConfigFile = os.path.join(folderLocation, 'config_SaveManager.json')
 
 for i in os.listdir(folderLocation):
     if i.isdigit():
@@ -14,7 +16,10 @@ for i in os.listdir(folderLocation):
 def GetSavePath(Profile):
     return os.path.join(AllSavePath, Profile)
 
-def ImportSave(Name, Profile):
+def ImportSave(SteamID, Name, Profile):
+    CurrentSavePath = os.path.join(folderLocation, SteamID)
+    if not os.path.exists(CurrentSavePath):
+        return False
     if Profile == "":
         return False
     NewSavePath = os.path.join(AllSavePath, Profile, Name)
@@ -51,7 +56,10 @@ def RenameSave(OldName, NewName, Profile):
     os.rename(OldNamePath, NewNamePath)
     return True
 
-def LoadSave(Name, Profile):
+def LoadSave(SteamID, Name, Profile):
+    CurrentSavePath = os.path.join(folderLocation, SteamID)
+    if not os.path.exists(CurrentSavePath):
+        return False
     if Profile == "":
         return False
 
@@ -81,6 +89,41 @@ def GetListOfSave(Profile):
 
 def GetListOfProfile():
     return os.listdir(AllSavePath)
+
+def GetDictOfSteamIDs() -> dict:
+    loaded_config = {}
+    try:
+        if os.path.exists(ConfigFile):
+            with open(ConfigFile) as f:
+                loaded_config: dict[str, Any] = json.load(f)
+    except Exception as e:
+        pass
+
+    retVal = {
+        "ids": {},
+        "latest": ""
+    }
+    timecomp : float = 0
+    for sid in os.listdir(folderLocation):
+        if sid.isdigit():
+            retVal["ids"][sid] = "name_" + sid
+            if sid in loaded_config:
+                retVal["ids"][sid] = loaded_config[sid]
+            timefile = os.path.join(folderLocation, sid, "EnhancedInputUserSettings.sav")
+            if os.path.exists(timefile):
+                timeofSID = os.path.getmtime(timefile)
+                if timeofSID > timecomp:
+                    timecomp = timeofSID
+                    retVal["latest"] = sid
+    try:
+        with open(ConfigFile, 'w') as f:
+            json.dump(retVal["ids"],
+                f,
+                indent=2,
+            )
+    except Exception as e:
+        pass
+    return retVal
 
 def CreateProfile(Profile):
     if Profile == "":
