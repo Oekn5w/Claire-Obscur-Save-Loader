@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont,QFontDatabase
 from PyQt5.QtCore import Qt, QPoint
 import functionForSave
+import images_qr
 
 
 class MainWindow(QMainWindow):
@@ -13,12 +14,7 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        if getattr(sys, "frozen", False):
-            base = sys._MEIPASS
-        else:
-            base = os.path.dirname(__file__)
-        icon_path = os.path.join(base, "icon.ico")
-        self.setWindowIcon(QIcon(icon_path))
+        self.setWindowIcon(QIcon(':/icon.ico'))
        
         self.setStyleSheet("""
             QMainWindow{
