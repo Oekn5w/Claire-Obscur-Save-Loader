@@ -9,7 +9,7 @@ import images_qr
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Claire Obscur Save Loader")
+        self.setWindowTitle("COE33 Save Loader")
         self.setGeometry(0, 0, 500, 500)
         self.initUI()
 
@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
         self.move((screen.width() - self.width()) // 2, (screen.height() - self.height()) // 2)
 
         # Title label
-        self.label = QLabel("CLAIRE OBSCUR SAVE LOADER", self) 
+        self.label = QLabel("Clair Obscur Save Loader", self) 
         self.label.setFont(QFont("Helvetica", 15))
         self.label.setStyleSheet("color: #eeeeee")
         self.label.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
